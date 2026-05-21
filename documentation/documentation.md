@@ -111,3 +111,15 @@ Teve tambem uma implementação de uma melhoria que realizei de rota de /health 
 Criei tambem uma pasta chamada K8S e nela temos uma pasta referente ao mysql, nginx e ao node com os manifestos kubernetes prontos para subir.
 
 para o deploy eu usei a pratica de Kustomize onde temos duas pastas, base e overlays, basicamente oque vai ser aplicado será o conteudo da pasta overlays tem duas pastas gar [google artifact registry] e local, local para deploy localmente e gar puxando a imagem em cloud e deploy em um cluster ambiente que subir localmente do kubernetes na minha maquina. Todos os containers usando imagens baseada em deploy por hash do commit por ex: sha-f4cd7a6.
+
+### CI/CD (GitHub Actions)
+
+O workflow `.github/workflows/build-and-deploy.yml` faz na nuvem:
+
+- build das 3 imagens (app, nginx, db)
+- push no Google Artifact Registry com tag `sha-<commit>`
+- atualiza o `k8s/overlays/gar/kustomization.yaml` no git (GitOps)
+
+O `kubectl apply` **nao roda no CI** — o cluster e local (Docker Desktop) e a nuvem nao alcanca `kubernetes.docker.internal`.
+
+Secrets necessarios no GitHub: `GCP_PROJECT_ID`, `GAR_LOCATION`, `GAR_REPOSITORY`, `GCP_SA_KEY`. O secret `KUBECONFIG` nao e usado.
