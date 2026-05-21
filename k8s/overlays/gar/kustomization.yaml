@@ -12,10 +12,10 @@ patches:
 images:
 - name: desafio-devops-app
   newName: us-central1-docker.pkg.dev/app1-349916/desafio/desafio-devops-app
-  newTag: sha-d935513
+  newTag: sha-7929b37
 - name: desafio-devops-db
   newName: us-central1-docker.pkg.dev/app1-349916/desafio/desafio-devops-db
-  newTag: sha-d935513
+  newTag: sha-7929b37
 - name: desafio-devops-nginx
   newName: us-central1-docker.pkg.dev/app1-349916/desafio/desafio-devops-nginx
-  newTag: sha-d935513
+  newTag: sha-7929b37
