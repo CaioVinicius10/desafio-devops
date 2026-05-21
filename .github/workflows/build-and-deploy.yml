@@ -109,9 +109,16 @@ jobs:
               uses: actions/checkout@v4
 
             - name: Configure kubeconfig
+              env:
+                  KUBECONFIG_SECRET: ${{ secrets.KUBECONFIG }}
               run: |
                   mkdir -p "$HOME/.kube"
-                  echo "${{ secrets.KUBECONFIG }}" | base64 -d > "$HOME/.kube/config"
+                  # Aceita YAML direto (apiVersion: v1) ou conteúdo em base64 (uma linha)
+                  if printf '%s' "$KUBECONFIG_SECRET" | head -c 12 | grep -q '^apiVersion:'; then
+                    printf '%s\n' "$KUBECONFIG_SECRET" > "$HOME/.kube/config"
+                  else
+                    printf '%s' "$KUBECONFIG_SECRET" | base64 -d > "$HOME/.kube/config"
+                  fi
                   chmod 600 "$HOME/.kube/config"
                   kubectl cluster-info
                   kubectl get nodes
