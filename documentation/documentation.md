@@ -1,4 +1,7 @@
 
+
+## dentro da pasta documentation/ tem algumas imagens para auxiliar na avaliação do que foi feito em todas as etapas.
+
 ## 1. `version: '3'` obsoleto no docker-compose.yaml
 
 Não é erro, mas o Compose v2 cospe esse warning a cada comando:
@@ -121,7 +124,24 @@ O workflow `.github/workflows/build-and-deploy.yml` faz na nuvem:
 - build das 3 imagens (app, nginx, db)
 - push no Google Artifact Registry com tag `sha-<commit>`
 - atualiza o `k8s/overlays/gar/kustomization.yaml` no git (GitOps)
+- um extra que não realizei mas tá bem tranquilo de fazer é, instalar um argocd no cluster e ele realizar a instalação do application do argo baseado nos overlays, já implementei alguns projetos assim funciona super bem.
 
 O `kubectl apply` **nao roda no CI** — o cluster e local (Docker Desktop) e a nuvem nao alcanca `kubernetes.docker.internal`.
 
 Secrets necessarios no GitHub: `GCP_PROJECT_ID`, `GAR_LOCATION`, `GAR_REPOSITORY`, `GCP_SA_KEY`. O secret `KUBECONFIG` nao e usado.
+
+### Observabilidade
+
+Implementei alguns dashboards que estão em anexo as imagens monitorar a aplicação e o status para identificar se está UP.
+
+Stack instalada via Helm (`kube-prometheus-stack`) com values em `k8s/helm/kube-prometheus-stack/values.yaml`.
+
+- **Prometheus** — metricas do cluster e probes HTTP da aplicacao
+- **Blackbox exporter** — monitora `/health` (app) e `/nginx-health` (nginx)
+
+Manifests extras em `k8s/observability/` (probes + alertas)
+
+
+## Por fim eu gostaria de ter realizado o teste em alguma cloud utlizando um GKE, AKS ou EKS para de fato apresentar o funcionamento de toda essa arquitetura em nuvem. Mas tive problemas ao tentar criar a conta.
+
+

@@ -1,0 +1,72 @@
+# Blackbox exporter com nome de servico fixo (evita DNS do subchart do Helm)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: blackbox-exporter-config
+    labels:
+        release: monitoring
+data:
+    blackbox.yml: |
+        modules:
+          http_2xx:
+            prober: http
+            timeout: 5s
+            http:
+              valid_http_versions: ["HTTP/1.1", "HTTP/2.0"]
+              preferred_ip_protocol: ip4
+              method: GET
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: blackbox-exporter
+    labels:
+        app: blackbox-exporter
+        release: monitoring
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: blackbox-exporter
+    template:
+        metadata:
+            labels:
+                app: blackbox-exporter
+                release: monitoring
+        spec:
+            containers:
+                - name: blackbox-exporter
+                  image: prom/blackbox-exporter:v0.25.0
+                  args:
+                      - --config.file=/etc/blackbox/blackbox.yml
+                  ports:
+                      - name: http
+                        containerPort: 9115
+                  volumeMounts:
+                      - name: config
+                        mountPath: /etc/blackbox
+                  resources:
+                      requests:
+                          cpu: 10m
+                          memory: 32Mi
+                      limits:
+                          memory: 64Mi
+            volumes:
+                - name: config
+                  configMap:
+                      name: blackbox-exporter-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: blackbox-exporter
+    labels:
+        app: blackbox-exporter
+        release: monitoring
+spec:
+    selector:
+        app: blackbox-exporter
+    ports:
+        - name: http
+          port: 9115
+          targetPort: http

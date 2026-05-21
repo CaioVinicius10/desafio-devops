@@ -1,0 +1,110 @@
+# kube-prometheus-stack — perfil leve para Docker Desktop
+# Instalar: ver k8s/helm/README.md
+# Release recomendado: monitoring (namespace monitoring)
+
+fullnameOverride: ""
+namespaceOverride: monitoring
+
+defaultRules:
+    create: true
+    rules:
+        alertmanager: false
+        etcd: false
+        kubeControllerManager: false
+        kubeScheduler: false
+        kubeProxy: false
+
+alertmanager:
+    enabled: false
+
+grafana:
+    enabled: true
+    adminPassword: admin
+    defaultDashboardsEnabled: true
+    sidecar:
+        dashboards:
+            enabled: true
+            label: grafana_dashboard
+            labelValue: "1"
+            searchNamespace: ALL
+            folder: /tmp/dashboards/Desafio DevOps
+    service:
+        type: NodePort
+        nodePort: 30300
+    resources:
+        requests:
+            cpu: 50m
+            memory: 128Mi
+        limits:
+            memory: 256Mi
+
+prometheus:
+    enabled: true
+    service:
+        type: NodePort
+        nodePort: 30900
+    prometheusSpec:
+        retention: 2d
+        scrapeInterval: 30s
+        evaluationInterval: 30s
+        probeSelectorNilUsesHelmValues: false
+        probeSelector:
+            matchLabels:
+                release: monitoring
+        probeNamespaceSelector: {}
+        ruleSelector:
+            matchLabels:
+                release: monitoring
+        resources:
+            requests:
+                cpu: 100m
+                memory: 256Mi
+            limits:
+                memory: 512Mi
+
+prometheusOperator:
+    # Docker Desktop: sem webhooks + sem TLS (evita secret admission inexistente)
+    admissionWebhooks:
+        enabled: false
+        patch:
+            enabled: false
+    tls:
+        enabled: false
+
+kubeApiServer:
+    enabled: true
+
+kubeControllerManager:
+    enabled: false
+
+kubeScheduler:
+    enabled: false
+
+kubeEtcd:
+    enabled: false
+
+kubeProxy:
+    enabled: false
+
+# Metricas de CPU/RAM dos containers (cAdvisor) — necessario para dashboards de Pod no Grafana
+kubelet:
+    enabled: true
+    serviceMonitor:
+        https: true
+        insecureSkipVerify: true
+        cAdvisor: true
+        resource: false
+
+coreDns:
+    enabled: true
+
+kubeStateMetrics:
+    enabled: true
+
+# Docker Desktop (Windows): mount do host / falha ("not a shared or slave mount")
+nodeExporter:
+    enabled: false
+
+# Blackbox fica em k8s/observability/blackbox-exporter.yaml (servico: blackbox-exporter)
+blackboxExporter:
+    enabled: false

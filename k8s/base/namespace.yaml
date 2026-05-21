@@ -4,3 +4,4 @@ metadata:
     name: desafio-devops
     labels:
         app.kubernetes.io/part-of: desafio-devops
+        monitoring: enabled

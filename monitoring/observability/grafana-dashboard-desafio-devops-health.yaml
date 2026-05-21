@@ -1,0 +1,180 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: grafana-dashboard-desafio-devops-health
+    namespace: monitoring
+    labels:
+        grafana_dashboard: "1"
+    annotations:
+        grafana_folder: "Desafio DevOps"
+data:
+    desafio-devops-health.json: |
+        {
+          "title": "Desafio DevOps - Health e Alertas",
+          "uid": "desafio-devops-health",
+          "editable": true,
+          "timezone": "browser",
+          "schemaVersion": 39,
+          "version": 1,
+          "refresh": "10s",
+          "tags": ["desafio-devops", "health"],
+          "time": { "from": "now-1h", "to": "now" },
+          "templating": { "list": [] },
+          "annotations": { "list": [] },
+          "panels": [
+            {
+              "id": 1,
+              "type": "stat",
+              "title": "App /health",
+              "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "targets": [
+                {
+                  "refId": "A",
+                  "expr": "probe_success{job=\"desafio-devops-app-health\"}",
+                  "legendFormat": "app"
+                }
+              ],
+              "options": { "colorMode": "background", "graphMode": "none", "textMode": "value_and_name" },
+              "fieldConfig": {
+                "defaults": {
+                  "mappings": [
+                    { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+                  ],
+                  "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+                }
+              }
+            },
+            {
+              "id": 2,
+              "type": "stat",
+              "title": "Nginx /nginx-health",
+              "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "targets": [
+                {
+                  "refId": "A",
+                  "expr": "probe_success{job=\"desafio-devops-nginx-health\"}",
+                  "legendFormat": "nginx"
+                }
+              ],
+              "options": { "colorMode": "background", "graphMode": "none", "textMode": "value_and_name" },
+              "fieldConfig": {
+                "defaults": {
+                  "mappings": [
+                    { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+                  ],
+                  "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+                }
+              }
+            },
+            {
+              "id": 3,
+              "type": "stat",
+              "title": "HTTP status App",
+              "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "targets": [
+                {
+                  "refId": "A",
+                  "expr": "probe_http_status_code{job=\"desafio-devops-app-health\"}",
+                  "legendFormat": "status"
+                }
+              ],
+              "fieldConfig": {
+                "defaults": {
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      { "color": "red", "value": null },
+                      { "color": "green", "value": 200 }
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "id": 4,
+              "type": "stat",
+              "title": "HTTP status Nginx",
+              "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "targets": [
+                {
+                  "refId": "A",
+                  "expr": "probe_http_status_code{job=\"desafio-devops-nginx-health\"}",
+                  "legendFormat": "status"
+                }
+              ],
+              "fieldConfig": {
+                "defaults": {
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      { "color": "red", "value": null },
+                      { "color": "green", "value": 200 }
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "id": 5,
+              "type": "timeseries",
+              "title": "Tempo de resposta dos probes (s)",
+              "gridPos": { "h": 7, "w": 12, "x": 0, "y": 5 },
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "targets": [
+                {
+                  "refId": "A",
+                  "expr": "probe_duration_seconds{job=~\"desafio-devops-.*-health\"}",
+                  "legendFormat": "{{job}}"
+                }
+              ],
+              "fieldConfig": { "defaults": { "unit": "s" } }
+            },
+            {
+              "id": 6,
+              "type": "timeseries",
+              "title": "probe_success (1=UP)",
+              "gridPos": { "h": 7, "w": 12, "x": 12, "y": 5 },
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "targets": [
+                {
+                  "refId": "A",
+                  "expr": "probe_success{job=~\"desafio-devops-.*-health\"}",
+                  "legendFormat": "{{job}}"
+                }
+              ],
+              "fieldConfig": {
+                "defaults": {
+                  "min": 0,
+                  "max": 1,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      { "color": "red", "value": null },
+                      { "color": "green", "value": 1 }
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "id": 7,
+              "type": "table",
+              "title": "Alertas Prometheus (desafio-devops)",
+              "gridPos": { "h": 8, "w": 24, "x": 0, "y": 12 },
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "targets": [
+                {
+                  "refId": "A",
+                  "expr": "ALERTS{alertstate=\"firing\", alertname=~\"App.*|Nginx.*|Mysql.*|Pod.*\"}",
+                  "format": "table",
+                  "instant": true
+                }
+              ],
+              "transformations": [{ "id": "organize", "options": { "excludeByName": { "Time": true } } }]
+            }
+          ]
+        }

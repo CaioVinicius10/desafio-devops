@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: grafana-dashboard-desafio-devops
+    namespace: monitoring
+    labels:
+        grafana_dashboard: "1"
+    annotations:
+        grafana_folder: "Desafio DevOps"
+data:
+    desafio-devops-resources.json: |
+        {
+          "title": "Desafio DevOps - CPU e Memoria",
+          "uid": "desafio-devops-resources",
+          "editable": true,
+          "timezone": "browser",
+          "schemaVersion": 39,
+          "version": 1,
+          "refresh": "30s",
+          "tags": ["desafio-devops"],
+          "time": { "from": "now-1h", "to": "now" },
+          "templating": { "list": [] },
+          "annotations": { "list": [] },
+          "panels": [
+            {
+              "id": 1,
+              "type": "timeseries",
+              "title": "CPU por pod (cores)",
+              "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "targets": [
+                {
+                  "refId": "A",
+                  "datasource": { "type": "prometheus", "uid": "prometheus" },
+                  "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"desafio-devops\"}[5m]))",
+                  "legendFormat": "{{pod}}"
+                }
+              ],
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "short",
+                  "custom": { "drawStyle": "line", "fillOpacity": 10 }
+                }
+              }
+            },
+            {
+              "id": 2,
+              "type": "timeseries",
+              "title": "Memoria por pod (MiB)",
+              "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+              "datasource": { "type": "prometheus", "uid": "prometheus" },
+              "targets": [
+                {
+                  "refId": "A",
+                  "datasource": { "type": "prometheus", "uid": "prometheus" },
+                  "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"desafio-devops\"}) / 1024 / 1024",
+                  "legendFormat": "{{pod}}"
+                }
+              ],
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "decmbytes",
+                  "custom": { "drawStyle": "line", "fillOpacity": 10 }
+                }
+              }
+            }
+          ]
+        }

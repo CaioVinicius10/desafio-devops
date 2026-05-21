@@ -1,0 +1,111 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+    name: desafio-devops-alerts
+    namespace: monitoring
+    labels:
+        release: monitoring
+spec:
+    groups:
+        - name: desafio-devops-health
+          rules:
+              - alert: AppHealthDown
+                expr: probe_success{job="desafio-devops-app-health"} == 0
+                for: 1m
+                labels:
+                    severity: critical
+                    app: node
+                annotations:
+                    summary: App Node fora do ar
+                    description: Probe /health do servico app falhou por mais de 1 minuto.
+
+              - alert: NginxHealthDown
+                expr: probe_success{job="desafio-devops-nginx-health"} == 0
+                for: 1m
+                labels:
+                    severity: critical
+                    app: nginx
+                annotations:
+                    summary: Nginx fora do ar
+                    description: Probe /nginx-health do servico nginx falhou por mais de 1 minuto.
+
+              - alert: AppHealthSlow
+                expr: probe_duration_seconds{job="desafio-devops-app-health"} > 1
+                for: 5m
+                labels:
+                    severity: warning
+                    app: node
+                annotations:
+                    summary: App Node respondendo lentamente
+                    description: Probe /health demorou mais de 1s por 5 minutos.
+
+              - alert: NginxHealthSlow
+                expr: probe_duration_seconds{job="desafio-devops-nginx-health"} > 1
+                for: 5m
+                labels:
+                    severity: warning
+                    app: nginx
+                annotations:
+                    summary: Nginx respondendo lentamente
+                    description: Probe /nginx-health demorou mais de 1s por 5 minutos.
+
+              - alert: AppHttpNot200
+                expr: probe_http_status_code{job="desafio-devops-app-health"} != 200
+                for: 2m
+                labels:
+                    severity: warning
+                    app: node
+                annotations:
+                    summary: App Node retornou HTTP diferente de 200
+                    description: Endpoint /health nao retornou status 200.
+
+        - name: desafio-devops-kubernetes
+          rules:
+              - alert: PodNotReady
+                expr: kube_pod_status_ready{namespace="desafio-devops", condition="true"} == 0
+                for: 5m
+                labels:
+                    severity: warning
+                annotations:
+                    summary: Pod nao esta Ready
+                    description: Pod {{ $labels.pod }} no namespace desafio-devops nao esta Ready ha 5 minutos.
+
+              - alert: AppReplicasUnavailable
+                expr: |
+                    (
+                      kube_deployment_spec_replicas{namespace="desafio-devops", deployment="app"}
+                      - kube_deployment_status_replicas_available{namespace="desafio-devops", deployment="app"}
+                    ) > 0
+                for: 5m
+                labels:
+                    severity: critical
+                    app: node
+                annotations:
+                    summary: Replicas da app indisponiveis
+                    description: Deployment app tem replicas indisponiveis.
+
+              - alert: MysqlHighMemory
+                expr: |
+                    sum by (pod) (
+                      container_memory_working_set_bytes{namespace="desafio-devops", pod="mysql-0"}
+                    ) / 1024 / 1024 > 900
+                for: 10m
+                labels:
+                    severity: warning
+                    app: mysql
+                annotations:
+                    summary: MySQL usando muita memoria
+                    description: Pod mysql-0 acima de 900 MiB por 10 minutos.
+
+              - alert: AppHighMemory
+                expr: |
+                    sum by (pod) (
+                      container_memory_working_set_bytes{namespace="desafio-devops", pod=~"app-.*"}
+                    ) / 1024 / 1024 > 100
+                for: 10m
+                labels:
+                    severity: warning
+                    app: node
+                annotations:
+                    summary: App usando muita memoria
+                    description: Pod {{ $labels.pod }} acima de 100 MiB por 10 minutos.

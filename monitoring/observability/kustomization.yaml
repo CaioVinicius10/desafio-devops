@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: monitoring
+
+commonLabels:
+    release: monitoring
+
+resources:
+    - blackbox-exporter.yaml
+    - probes.yaml
+    - prometheus-rules.yaml
+    - grafana-dashboard-desafio-devops.yaml
+    - grafana-dashboard-desafio-devops-health.yaml

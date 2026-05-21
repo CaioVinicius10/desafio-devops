@@ -1,0 +1,46 @@
+# Probes HTTP (blackbox) — aplicar apos instalar o Helm (release: monitoring)
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+    name: desafio-devops-app-health
+    namespace: monitoring
+    labels:
+        release: monitoring
+spec:
+    jobName: desafio-devops-app-health
+    interval: 30s
+    module: http_2xx
+    prober:
+        scheme: http
+        path: /probe
+        url: blackbox-exporter.monitoring.svc.cluster.local:9115
+    targets:
+        staticConfig:
+            labels:
+                app: app
+                namespace: desafio-devops
+            static:
+                - http://app.desafio-devops.svc.cluster.local:3000/health
+---
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+    name: desafio-devops-nginx-health
+    namespace: monitoring
+    labels:
+        release: monitoring
+spec:
+    jobName: desafio-devops-nginx-health
+    interval: 30s
+    module: http_2xx
+    prober:
+        scheme: http
+        path: /probe
+        url: blackbox-exporter.monitoring.svc.cluster.local:9115
+    targets:
+        staticConfig:
+            labels:
+                app: nginx
+                namespace: desafio-devops
+            static:
+                - http://nginx.desafio-devops.svc.cluster.local/nginx-health
