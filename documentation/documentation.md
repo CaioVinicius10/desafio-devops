@@ -142,6 +142,6 @@ Stack instalada via Helm (`kube-prometheus-stack`) com values em `k8s/helm/kube-
 Manifests extras em `k8s/observability/` (probes + alertas)
 
 
-## Por fim eu gostaria de ter realizado o teste em alguma cloud utlizando um GKE, AKS ou EKS para de fato apresentar o funcionamento de toda essa arquitetura em nuvem. Mas tive problemas ao tentar criar a conta.
+## Por fim eu gostaria de ter realizado o teste em alguma cloud utlizando um GKE, AKS ou EKS para de fato apresentar o funcionamento de toda essa arquitetura em nuvem. Mas tive problemas ao tentar criar a conta. Tambem se tivesse um dominio poderia configurar na cloudflare para a aplicação usar um endpoint para ser acessivel a partir de um endreço DNS.
 
 
