@@ -1,9 +1,11 @@
-name: build and push images
+name: Build and Deploy
 
 on:
     push:
         branches:
             - main
+        paths-ignore:
+            - k8s/overlays/gar/kustomization.yaml
     pull_request:
         branches:
             - main
@@ -15,10 +17,13 @@ env:
 
 jobs:
     build:
-        name: build and push images
+        name: Build and Push Images
         runs-on: ubuntu-latest
         permissions:
             contents: read
+        outputs:
+            sha: ${{ steps.vars.outputs.sha }}
+            should_push: ${{ steps.gate.outputs.should_push }}
 
         steps:
             - name: Checkout
@@ -41,7 +46,7 @@ jobs:
                       echo "should_push=false" >> "$GITHUB_OUTPUT"
                   fi
 
-            - name: Login no Artifact Registry
+            - name: Login to Artifact Registry
               if: steps.gate.outputs.should_push == 'true'
               uses: docker/login-action@v3
               with:
@@ -82,11 +87,83 @@ jobs:
                   cache-from: type=gha,scope=db
                   cache-to: type=gha,scope=db,mode=max
 
-            - name: Resume images published
+            - name: Published images summary
               if: steps.gate.outputs.should_push == 'true'
               run: |
-                  echo "### Imagens publicadas" >> "$GITHUB_STEP_SUMMARY"
+                  echo "### Published images" >> "$GITHUB_STEP_SUMMARY"
                   echo "" >> "$GITHUB_STEP_SUMMARY"
                   echo "- \`${{ env.IMAGE_PREFIX }}/desafio-devops-app:sha-${{ steps.vars.outputs.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
                   echo "- \`${{ env.IMAGE_PREFIX }}/desafio-devops-nginx:sha-${{ steps.vars.outputs.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
                   echo "- \`${{ env.IMAGE_PREFIX }}/desafio-devops-db:sha-${{ steps.vars.outputs.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+
+    deploy:
+        name: Deploy to Kubernetes
+        needs: build
+        if: needs.build.outputs.should_push == 'true'
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Configure kubeconfig
+              run: |
+                  mkdir -p "$HOME/.kube"
+                  echo "${{ secrets.KUBECONFIG }}" | base64 -d > "$HOME/.kube/config"
+                  chmod 600 "$HOME/.kube/config"
+                  kubectl cluster-info
+                  kubectl get nodes
+
+            - name: Update GAR overlay image tags
+              working-directory: k8s/overlays/gar
+              run: |
+                  TAG="sha-${{ needs.build.outputs.sha }}"
+                  kustomize edit set image \
+                    desafio-devops-app=${{ env.IMAGE_PREFIX }}/desafio-devops-app:${TAG} \
+                    desafio-devops-nginx=${{ env.IMAGE_PREFIX }}/desafio-devops-nginx:${TAG} \
+                    desafio-devops-db=${{ env.IMAGE_PREFIX }}/desafio-devops-db:${TAG}
+                  echo "Rendered overlay:"
+                  kubectl kustomize .
+
+            - name: Commit overlay tag (GitOps)
+              run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "github-actions[bot]@users.noreply.github.com"
+                  git add k8s/overlays/gar/kustomization.yaml
+                  if git diff --staged --quiet; then
+                    echo "Tag already up to date, skipping commit."
+                  else
+                    git commit -m "deploy: update images to sha-${{ needs.build.outputs.sha }}"
+                    git push
+                  fi
+
+            - name: Create registry pull secret
+              env:
+                  GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+              run: |
+                  kubectl create namespace desafio-devops --dry-run=client -o yaml | kubectl apply -f -
+                  kubectl delete secret gar-registry -n desafio-devops --ignore-not-found
+                  kubectl create secret docker-registry gar-registry \
+                    --docker-server=${{ env.REGISTRY_HOST }} \
+                    --docker-username=_json_key \
+                    --docker-password="$GCP_SA_KEY" \
+                    --namespace=desafio-devops
+
+            - name: Apply GAR overlay
+              run: kubectl apply -k k8s/overlays/gar
+
+            - name: Wait for rollout
+              run: |
+                  kubectl -n desafio-devops rollout status deployment/app --timeout=180s
+                  kubectl -n desafio-devops rollout status deployment/nginx --timeout=120s
+                  kubectl -n desafio-devops rollout status statefulset/mysql --timeout=300s
+
+            - name: Deploy summary
+              run: |
+                  echo "### Deploy completed" >> "$GITHUB_STEP_SUMMARY"
+                  echo "" >> "$GITHUB_STEP_SUMMARY"
+                  echo "Tag: \`sha-${{ needs.build.outputs.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+                  echo "" >> "$GITHUB_STEP_SUMMARY"
+                  kubectl -n desafio-devops get pods >> "$GITHUB_STEP_SUMMARY"

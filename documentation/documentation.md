@@ -109,3 +109,5 @@ Teve tambem uma implementação de uma melhoria que realizei de rota de /health 
 
 
 Criei tambem uma pasta chamada K8S e nela temos uma pasta referente ao mysql, nginx e ao node com os manifestos kubernetes prontos para subir.
+
+para o deploy eu usei a pratica de Kustomize onde temos duas pastas, base e overlays, basicamente oque vai ser aplicado será o conteudo da pasta overlays tem duas pastas gar [google artifact registry] e local, local para deploy localmente e gar puxando a imagem em cloud e deploy em um cluster ambiente que subir localmente do kubernetes na minha maquina. Todos os containers usando imagens baseada em deploy por hash do commit por ex: sha-f4cd7a6.

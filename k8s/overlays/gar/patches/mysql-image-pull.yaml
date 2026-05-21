@@ -1,0 +1,10 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+    name: mysql
+    namespace: desafio-devops
+spec:
+    template:
+        spec:
+            imagePullSecrets:
+                - name: gar-registry

@@ -1,0 +1,10 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: app
+    namespace: desafio-devops
+spec:
+    template:
+        spec:
+            imagePullSecrets:
+                - name: gar-registry
