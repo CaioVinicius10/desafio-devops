@@ -1,4 +1,4 @@
-name: Build and Push
+name: Build, Test and Deploy
 
 on:
     push:
@@ -96,9 +96,37 @@ jobs:
                   echo "- \`${{ env.IMAGE_PREFIX }}/desafio-devops-nginx:sha-${{ steps.vars.outputs.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
                   echo "- \`${{ env.IMAGE_PREFIX }}/desafio-devops-db:sha-${{ steps.vars.outputs.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
 
-    gitops:
-        name: Update overlay tags
+    test:
+        name: Test
         needs: build
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: "22"
+                  cache: npm
+                  cache-dependency-path: node/package-lock.json
+
+            - name: Test Node app (install + syntax check)
+              working-directory: node
+              run: |
+                  npm ci --omit=dev
+                  node --check index.js
+                  node --check routes.js
+                  node --check connectionDb.js
+                  grep -q "get('/health'" routes.js
+
+            - name: Validate Docker Compose
+              run: docker compose config --quiet
+
+    gitops:
+        name: Deploy
+        needs: [build, test]
         if: needs.build.outputs.should_push == 'true'
         runs-on: ubuntu-latest
         permissions:

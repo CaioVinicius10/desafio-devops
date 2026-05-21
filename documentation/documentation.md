@@ -114,6 +114,8 @@ para o deploy eu usei a pratica de Kustomize onde temos duas pastas, base e over
 
 ### CI/CD (GitHub Actions)
 
+OBS: Optei pelo deploy em um cluster local pelo fato de não conseguir criar uma conta nova na GCP/Azure/AWS tive alguns problemas e as contas que já tenho criada meus creditos estão expirados, mas a logica desse workflow se aplica para deploy em nuvem. basicamente só vamos precisar apontar o kubeconfig no secrets, para que o deploy sejá direcionado para o cluster em questão.
+
 O workflow `.github/workflows/build-and-deploy.yml` faz na nuvem:
 
 - build das 3 imagens (app, nginx, db)
