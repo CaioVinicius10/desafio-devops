@@ -5,6 +5,8 @@ faker.locale = 'pt_BR';
 
 const connection = require('./connectionDb');
 
+routes.get('/health', (_, res) => res.status(200).send('ok'));
+
 routes.get('/', (_, res) => {
     const sql = `INSERT INTO peoples(name) VALUES('${faker.name.findName()}')`;
     connection.query(sql);

@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+    name: mysql
+    namespace: desafio-devops
+    labels:
+        app: mysql
+spec:
+    serviceName: mysql
+    replicas: 1
+    selector:
+        matchLabels:
+            app: mysql
+    template:
+        metadata:
+            labels:
+                app: mysql
+        spec:
+            containers:
+                - name: mysql
+                  image: desafio-devops-db:latest
+                  imagePullPolicy: IfNotPresent
+                  args:
+                      - --innodb-use-native-aio=0
+                  env:
+                      - name: MYSQL_DATABASE
+                        value: node_db
+                      - name: MYSQL_ROOT_PASSWORD
+                        valueFrom:
+                            secretKeyRef:
+                                name: mysql-credentials
+                                key: MYSQL_ROOT_PASSWORD
+                  ports:
+                      - name: mysql
+                        containerPort: 3306
+                  volumeMounts:
+                      - name: data
+                        mountPath: /var/lib/mysql
+                  livenessProbe:
+                      exec:
+                          command:
+                              - sh
+                              - -c
+                              - mysqladmin ping -h localhost -uroot -p"$MYSQL_ROOT_PASSWORD" --silent
+                      initialDelaySeconds: 30
+                      periodSeconds: 10
+                      timeoutSeconds: 5
+                      failureThreshold: 5
+                  readinessProbe:
+                      exec:
+                          command:
+                              - sh
+                              - -c
+                              - mysqladmin ping -h localhost -uroot -p"$MYSQL_ROOT_PASSWORD" --silent
+                      initialDelaySeconds: 10
+                      periodSeconds: 5
+                      timeoutSeconds: 5
+                      failureThreshold: 10
+                  resources:
+                      requests:
+                          memory: 256Mi
+                          cpu: 100m
+                      limits:
+                          memory: 512Mi
+                          cpu: 500m
+    volumeClaimTemplates:
+        - metadata:
+              name: data
+          spec:
+              accessModes:
+                  - ReadWriteOnce
+              resources:
+                  requests:
+                      storage: 1Gi

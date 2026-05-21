@@ -1,21 +1,30 @@
-version: '3'
-
 services:
     app:
         build:
             context: ./node
         container_name: app
         entrypoint: dockerize -wait tcp://db:3306 -timeout 60s node index.js
+        environment:
+            - DB_HOST=db
+            - DB_USER=root
+            - DB_PASSWORD=root
+            - DB_NAME=node_db
         networks:
             - node-network
         volumes:
             - ./node:/usr/src/app
             - /usr/src/app/node_modules
-        tty: true
         depends_on:
-            - db
+            db:
+                condition: service_healthy
         ports:
             - "3000:3000"
+        healthcheck:
+            test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+            start_period: 20s
 
     db:
         build:
@@ -23,21 +32,36 @@ services:
         command: --innodb-use-native-aio=0
         container_name: db
         restart: always
-        tty: true
-        environment: 
+        environment:
             - MYSQL_DATABASE=node_db
             - MYSQL_ROOT_PASSWORD=root
         networks:
             - node-network
+        healthcheck:
+            test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+            interval: 10s
+            timeout: 5s
+            retries: 10
+            start_period: 30s
 
     nginx:
         build:
             context: ./nginx
-        image: javielrezende/nginx
         container_name: nginx
         depends_on:
-            - app
-        networks: 
+            app:
+                condition: service_healthy
+        networks:
             - node-network
-        ports: 
+        ports:
             - "8080:80"
+        healthcheck:
+            test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost/nginx-health"]
+            interval: 10s
+            timeout: 5s
+            retries: 3
+            start_period: 5s
+
+networks:
+    node-network:
+        driver: bridge
